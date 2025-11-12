@@ -119,13 +119,8 @@ Popup {
     // Kerr 25-11-12 - Happy Birthday CFK!
     //
     function doCommand(commandString) {
-        // This is one simple way to execute a command directly.
-        // Ensure the QtQml/Process module is available if needed.
-        var process = PlasmaCore.Process.findProcess("sh"); // Or just use the default exec call if available
-        if (process) {
-            process.exec("sh", ["-c", commandString]);
-        }
-        // Note: A simpler approach might be available through the system.
+		var command = ["sh", "-c", commandString];
+        PlasmaCore.execute(command);
     }
 }
 

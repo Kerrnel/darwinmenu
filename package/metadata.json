@@ -4,12 +4,16 @@
             {
                 "Name": "Latgardi",
                 "Email": "saikinmirai@gmail.com"
+            },
+            {
+                "Name": "Kerr",
+                "Email": "greg-com-github@akua.com"
             }
         ],
-        "Name": "Darwin Menu",
+        "Name": "Darwin Menu 65",
         "Name[be]": "Мэню Darwin",
-        "Id": "org.latgardi.darwinmenu",
-        "Description": "Darwin menu is a Plasma applet that provides a menu system similar to that found on other operating systems. It allows users to access frequently used system settings and session controls.\n\nApplet also provides \"Force Quit\" app, which can be opened with global shortcut.",
+        "Id": "com.akua.darwinmenu",
+        "Description": "Darwin menu is a Plasma applet that provides a menu system similar to that found on other operating systems. It allows users to access frequently used system settings and session controls.\n\nApplet also provides \"Force Quit\" app, which can be opened with global shortcut. This fork was updated for KDE 6.5",
         "Category": "Application Launchers",
         "Icon": "start-here-kde",
         "EnabledByDefault": true,
@@ -17,8 +21,8 @@
         "ServiceTypes": [
             "Plasma/Applet"
         ],
-        "Version": "0.9",
-        "Website": "https://github.com/latgardi"
+        "Version": "0.10",
+        "Website": "https://github.com/kerrnel"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-MainScript": "ui/main.qml",
