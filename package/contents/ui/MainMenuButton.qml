@@ -9,7 +9,6 @@ import org.kde.kirigami 2 as Kirigami
 import org.kde.coreaddons as KCoreAddons
 import org.kde.plasma.private.sessions 2.0 as Sessions
 import org.kde.taskmanager 0.1 as TaskManager
-import org.kde.plasma.private.quicklaunch 1.0
 
 AbstractButton {
     id: menuButton
@@ -63,9 +62,6 @@ AbstractButton {
         id: kUser
     }
 
-    Logic {
-        id: logic
-    }
 
     onCustomCommandsConfigChanged: {
         let commands = [];
@@ -135,7 +131,7 @@ AbstractButton {
             id: aboutThisPCMenuItem
             text: i18n("About This PC")
             onTriggered: menuButton.aboutThisPCUseCommand
-                ? logic.openExec(menuButton.aboutThisPCCommand)
+                ? doCommand(menuButton.aboutThisPCCommand)
                 : KCMLauncher.openInfoCenter("")
         }
 
@@ -159,7 +155,7 @@ AbstractButton {
                 delegate: QtLabs.MenuItem {
                     text: model.text
                     onTriggered: {
-                        logic.openExec(model.command)
+                        doCommand(model.command)
                     }
                 }
 
@@ -176,7 +172,7 @@ AbstractButton {
             delegate: QtLabs.MenuItem {
                 text: model.text
                 onTriggered: {
-                    logic.openExec(model.command)
+                    doCommand(model.command)
                 }
             }
 
@@ -198,7 +194,7 @@ AbstractButton {
             id: appStoreMenuItem
             text: i18n("App Store...")
             onTriggered: {
-                logic.openExec(menuButton.appStoreCommand)
+                doCommand(menuButton.appStoreCommand)
             }
         }
 
@@ -245,4 +241,18 @@ AbstractButton {
         onAboutToHide: menu.isOpened = false
         onAboutToShow: menu.isOpened = true
     }
+
+    // Function to replace the logic.openExec call
+    // Kerr 25-11-12 - Happy Birthday CFK!
+    //
+    function doCommand(commandString) {
+        // This is one simple way to execute a command directly.
+        // Ensure the QtQml/Process module is available if needed.
+        var process = PlasmaCore.Process.findProcess("sh"); // Or just use the default exec call if available
+        if (process) {
+            process.exec("sh", ["-c", commandString]);
+        }
+        // Note: A simpler approach might be available through the system.
+    }
 }
+

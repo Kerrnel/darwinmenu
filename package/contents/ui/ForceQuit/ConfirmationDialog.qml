@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import org.kde.kirigami 2.20 as Kirigami
-import org.kde.plasma.private.quicklaunch 1.0
 
 Popup {
     property int selectedAppPid
@@ -12,10 +11,6 @@ Popup {
     SystemPalette {
         id: disabledPalette;
         colorGroup: SystemPalette.Disabled
-    }
-
-    Logic {
-        id: logic
     }
 
     focus: true
@@ -104,7 +99,7 @@ Popup {
                 focusPolicy: Qt.TabFocus
                 text: i18nc("force quit action", "Force Quit")
                 onClicked: {
-                    logic.openExec(`kill ${confirmationDialog.selectedAppPid}`)
+                    doCommand(`kill ${confirmationDialog.selectedAppPid}`)
                     confirmationDialog.close()
                     confirmationDialog.selectedAppPid = 0
                     confirmationDialog.selectedAppName = ""
@@ -119,4 +114,18 @@ Popup {
         }
     }
     closePolicy: Popup.NoAutoClose
+
+    // Function to replace the logic.openExec call
+    // Kerr 25-11-12 - Happy Birthday CFK!
+    //
+    function doCommand(commandString) {
+        // This is one simple way to execute a command directly.
+        // Ensure the QtQml/Process module is available if needed.
+        var process = PlasmaCore.Process.findProcess("sh"); // Or just use the default exec call if available
+        if (process) {
+            process.exec("sh", ["-c", commandString]);
+        }
+        // Note: A simpler approach might be available through the system.
+    }
 }
+
