@@ -9,7 +9,7 @@ import org.kde.kirigami 2 as Kirigami
 import org.kde.coreaddons as KCoreAddons
 import org.kde.plasma.private.sessions 2.0 as Sessions
 import org.kde.taskmanager 0.1 as TaskManager
-import org.kde.plasma.private.quicklaunch 1.0
+import org.kde.plasma.plasma5support as Plasma5Support
 
 AbstractButton {
     id: menuButton
@@ -33,6 +33,7 @@ AbstractButton {
         Hover,
         Down
     }
+
     property int menuState: {
         if (down) {
             return MainMenuButton.State.Down;
@@ -63,10 +64,6 @@ AbstractButton {
         id: kUser
     }
 
-    Logic {
-        id: logic
-    }
-
     onCustomCommandsConfigChanged: {
         let commands = [];
         for (const command of Plasmoid.configuration.commands ?? []) {
@@ -75,6 +72,7 @@ AbstractButton {
         }
         customCommands = commands
     }
+
     onCustomCommandsChanged: {
         customMenuEntries.clear()
         for (const command of customCommands) {
@@ -131,26 +129,24 @@ AbstractButton {
         id: menu
         property bool isOpened: false
         readonly property int customCommandsEntryStartIndex: 2
+
         QtLabs.MenuItem {
             id: aboutThisPCMenuItem
             text: i18n("About This PC")
             onTriggered: menuButton.aboutThisPCUseCommand
-                ? logic.openExec(menuButton.aboutThisPCCommand)
+                ? executable.exec(menuButton.aboutThisPCCommand)
                 : KCMLauncher.openInfoCenter("")
         }
 
         QtLabs.MenuSeparator {}
+
         ListModel {
             id: customMenuEntries
-            Component.onCompleted: {
-                for (const command of customCommands) {
-                    customMenuEntries.append(command);
-                }
-            }
         }
+
         QtLabs.Menu {
             id: customCommandsSubMenu
-            enabled: menuButton.customCommandsInSeparateMenu && customMenuEntries.length > 0
+            enabled: menuButton.customCommandsInSeparateMenu && customMenuEntries.count > 0
             visible: menuButton.customCommandsInSeparateMenu
             title: menuButton.customCommandsMenuTitle?.length > 0 ? menuButton.customCommandsMenuTitle : i18n("Commands")
             Instantiator {
@@ -159,7 +155,7 @@ AbstractButton {
                 delegate: QtLabs.MenuItem {
                     text: model.text
                     onTriggered: {
-                        logic.openExec(model.command)
+                        executable.exec(model.command)
                     }
                 }
 
@@ -176,7 +172,7 @@ AbstractButton {
             delegate: QtLabs.MenuItem {
                 text: model.text
                 onTriggered: {
-                    logic.openExec(model.command)
+                    executable.exec(model.command)
                 }
             }
 
@@ -198,7 +194,7 @@ AbstractButton {
             id: appStoreMenuItem
             text: i18n("App Store...")
             onTriggered: {
-                logic.openExec(menuButton.appStoreCommand)
+                executable.exec(menuButton.appStoreCommand)
             }
         }
 
@@ -244,5 +240,18 @@ AbstractButton {
         }
         onAboutToHide: menu.isOpened = false
         onAboutToShow: menu.isOpened = true
+    }
+
+    Plasma5Support.DataSource {
+        id: executable
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            disconnectSource(source)
+        }
+
+        function exec(cmd) {
+            executable.connectSource(cmd)
+        }
     }
 }
