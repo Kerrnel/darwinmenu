@@ -21,7 +21,7 @@
         "ServiceTypes": [
             "Plasma/Applet"
         ],
-        "Version": "0.10",
+        "Version": "0.11",
         "Website": "https://github.com/kerrnel"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
