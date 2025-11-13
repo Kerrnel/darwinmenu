@@ -2,10 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import org.kde.kirigami 2.20 as Kirigami
-// Akua
-import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.extras as PlasmaExtras
-import org.kde.plasma.plasma5support as P5S
+import org.kde.plasma.plasma5support as Plasma5Support
 
 Popup {
     property int selectedAppPid
@@ -27,6 +24,7 @@ Popup {
     anchors.centerIn: Overlay.overlay
     dim: true
     modal: true
+
     enter: Transition {
         ParallelAnimation {
             NumberAnimation {
@@ -44,6 +42,7 @@ Popup {
             }
         }
     }
+
     exit: Transition {
         ParallelAnimation {
             NumberAnimation {
@@ -60,8 +59,10 @@ Popup {
             }
         }
     }
+
     contentItem: ColumnLayout {
         Layout.margins: 20
+        
         RowLayout {
             id: textRow
             Kirigami.Icon {
@@ -103,7 +104,7 @@ Popup {
                 focusPolicy: Qt.TabFocus
                 text: i18nc("force quit action", "Force Quit")
                 onClicked: {
-                    doCommand(`kill ${confirmationDialog.selectedAppPid}`)
+                    executable.exec(`kill ${confirmationDialog.selectedAppPid}`)
                     confirmationDialog.close()
                     confirmationDialog.selectedAppPid = 0
                     confirmationDialog.selectedAppName = ""
@@ -111,88 +112,26 @@ Popup {
             }
         }
     }
+
     Overlay.modal: Rectangle {
         color: {
             const color = disabledPalette.window
             return Qt.hsla(color.hslHue, color.hslSaturation, color.hslLightness, 0.7)
         }
     }
+
     closePolicy: Popup.NoAutoClose
 
-	// Function to replace the logic.openExec call
-	// Kerr 25-11-12 - Happy Birthday CFK!
-	//
-	// function doCommand(commandString) {
-	//	// Debug logging
-	//	console.log("Darwin Exec: " + commandString);
-	//	var proc = PlasmaCore.Process.findProcess("sh")
-	//	if (proc) {
-	//		proc.exec("sh", ["-c", cmdString])
-	//		return true
-	//	}
-	//	console.log("Darwin: Failed to get PlasmaCore.Process.findProcess");
-	//	return false
-	// }
+    Plasma5Support.DataSource {
+        id: executable
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            disconnectSource(source)
+        }
 
-	 // --- Execution backend (Option A: Plasma5Support DataSource "executable")
-	 P5S.DataSource {
-	     id: execDS
-	     engine: "executable"
-	     onNewData: (sourceName, data) => {
-	         // stdout/stderr/exit code
-	         if (data["stdout"] && data["stdout"].length) console.log("exec stdout:", data["stdout"])
-	         if (data["stderr"] && data["stderr"].length) console.warn("exec stderr:", data["stderr"])
-	         // Important: disconnect to avoid multiplexing repeated runs
-	         disconnectSource(sourceName)
-	     }
-	 }
-
-	 // --- Execution backend (Option B: PlasmaCore.Process fallback if present)
-	 function __execViaPlasmaCore(cmdString) {
-	     try {
-	         // This exists on many builds but is not guaranteed everywhere
-	         var proc = PlasmaCore.Process.findProcess("sh")
-	         if (proc) {
-	             proc.exec("sh", ["-c", cmdString])
-	             return true
-	         }
-	     } catch (e) {
-	         console.warn("PlasmaCore.Process fallback failed:", e)
-	     }
-	     return false
-	 }
-
-	// Public runner: doCommand(cmdString, {runInTerminal: bool, cwd: string})
-	function doCommand(cmdString, opts) {
-		// Debug logging
-		console.log("Darwin Exec: " + cmdString);
-
-		opts = opts || {}
-		if (opts.runInTerminal === true) {
-			// Delegate to user's preferred terminal; keep it simple and portable
-			const quoted = JSON.stringify(String(cmdString))
-			const tryTerm = [
-				"konsole -e bash -lc '" + quoted + "'",
-				"xterm -e bash -lc '" + quoted + "'",
-				"kitty bash -lc '" + quoted + "'"
-			]
-			for (let i = 0; i < tryTerm.length; ++i) {
-				const s = tryTerm[i]
-				if (__execViaPlasmaCore(s)) return
-				execDS.connectSource(s)
-				return
-			}
-			return
-	     }
-		// Use bash -lc to honor pipes/quotes/aliases
-		const source = "bash -lc " + JSON.stringify(String(cmdString))
-		// Prefer DataSource engine; if unavailable, fallback to PlasmaCore.Process
-		try {
-			execDS.connectSource(source)
-		} catch (e) {
-			if (!__execViaPlasmaCore(cmdString)) {
-				console.warn("No available exec backend")
-			}
-		}
-	}
+        function exec(cmd) {
+            executable.connectSource(cmd)
+        }
+    }
 }

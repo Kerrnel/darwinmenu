@@ -9,11 +9,7 @@ import org.kde.kirigami 2 as Kirigami
 import org.kde.coreaddons as KCoreAddons
 import org.kde.plasma.private.sessions 2.0 as Sessions
 import org.kde.taskmanager 0.1 as TaskManager
-// Akua
-import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.extras as PlasmaExtras
-import org.kde.plasma.plasma5support as P5S
-
+import org.kde.plasma.plasma5support as Plasma5Support
 
 AbstractButton {
     id: menuButton
@@ -37,6 +33,7 @@ AbstractButton {
         Hover,
         Down
     }
+
     property int menuState: {
         if (down) {
             return MainMenuButton.State.Down;
@@ -67,7 +64,6 @@ AbstractButton {
         id: kUser
     }
 
-
     onCustomCommandsConfigChanged: {
         let commands = [];
         for (const command of Plasmoid.configuration.commands ?? []) {
@@ -77,16 +73,12 @@ AbstractButton {
         customCommands = commands
     }
 
-	onCustomCommandsChanged: {
-		// remove one-by-one so Instantiator.onObjectRemoved fires,
-		// allowing customCommandsSubMenu.removeItem()/menu.removeItem() to run
-		for (let i = customMenuEntries.count - 1; i >= 0; --i) {
-			customMenuEntries.remove(i)
-		}
-		for (const command of customCommands) {
-			customMenuEntries.append(command)
-		}
-	}
+    onCustomCommandsChanged: {
+        customMenuEntries.clear()
+        for (const command of customCommands) {
+            customMenuEntries.append(command);
+        }
+    }
 
     onClicked: {
         menu.isOpened ? menu.close() : menu.open(root)
@@ -137,21 +129,24 @@ AbstractButton {
         id: menu
         property bool isOpened: false
         readonly property int customCommandsEntryStartIndex: 2
+
         QtLabs.MenuItem {
             id: aboutThisPCMenuItem
             text: i18n("About This PC")
             onTriggered: menuButton.aboutThisPCUseCommand
-                ? doCommand(menuButton.aboutThisPCCommand)
+                ? executable.exec(menuButton.aboutThisPCCommand)
                 : KCMLauncher.openInfoCenter("")
         }
 
         QtLabs.MenuSeparator {}
 
-		ListModel { id: customMenuEntries }
+        ListModel {
+            id: customMenuEntries
+        }
 
         QtLabs.Menu {
             id: customCommandsSubMenu
-            enabled: menuButton.customCommandsInSeparateMenu && customMenuEntries.length > 0
+            enabled: menuButton.customCommandsInSeparateMenu && customMenuEntries.count > 0
             visible: menuButton.customCommandsInSeparateMenu
             title: menuButton.customCommandsMenuTitle?.length > 0 ? menuButton.customCommandsMenuTitle : i18n("Commands")
             Instantiator {
@@ -160,7 +155,7 @@ AbstractButton {
                 delegate: QtLabs.MenuItem {
                     text: model.text
                     onTriggered: {
-                        doCommand(model.command)
+                        executable.exec(model.command)
                     }
                 }
 
@@ -177,7 +172,7 @@ AbstractButton {
             delegate: QtLabs.MenuItem {
                 text: model.text
                 onTriggered: {
-                    doCommand(model.command)
+                    executable.exec(model.command)
                 }
             }
 
@@ -200,7 +195,7 @@ AbstractButton {
             visible: menuButton.appStoreCommand !== ""
             text: i18n("App Store...")
             onTriggered: {
-                doCommand(menuButton.appStoreCommand)
+                executable.exec(menuButton.appStoreCommand)
             }
         }
 
@@ -248,80 +243,16 @@ AbstractButton {
         onAboutToShow: menu.isOpened = true
     }
 
-	// Function to replace the logic.openExec call
-	// Kerr 25-11-12 - Happy Birthday CFK!
-	//
-	// function doCommand(commandString) {
-	//	// Debug logging
-	//	console.log("Darwin Exec: " + commandString);
-	//	var proc = PlasmaCore.Process.findProcess("sh")
-	//	if (proc) {
-	//		proc.exec("sh", ["-c", cmdString])
-	//		return true
-	//	}
-	//	console.log("Darwin: Failed to get PlasmaCore.Process.findProcess");
-	//	return false
-	// }
+    Plasma5Support.DataSource {
+        id: executable
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            disconnectSource(source)
+        }
 
-	 // --- Execution backend (Option A: Plasma5Support DataSource "executable")
-	 P5S.DataSource {
-	     id: execDS
-	     engine: "executable"
-	     onNewData: (sourceName, data) => {
-	         // stdout/stderr/exit code
-	         if (data["stdout"] && data["stdout"].length) console.log("exec stdout:", data["stdout"])
-	         if (data["stderr"] && data["stderr"].length) console.warn("exec stderr:", data["stderr"])
-	         // Important: disconnect to avoid multiplexing repeated runs
-	         disconnectSource(sourceName)
-	     }
-	 }
-
-	 // --- Execution backend (Option B: PlasmaCore.Process fallback if present)
-	 function __execViaPlasmaCore(cmdString) {
-	     try {
-	         // This exists on many builds but is not guaranteed everywhere
-	         var proc = PlasmaCore.Process.findProcess("sh")
-	         if (proc) {
-	             proc.exec("sh", ["-c", cmdString])
-	             return true
-	         }
-	     } catch (e) {
-	         console.warn("PlasmaCore.Process fallback failed:", e)
-	     }
-	     return false
-	 }
-
-	// Public runner: doCommand(cmdString, {runInTerminal: bool, cwd: string})
-	function doCommand(cmdString, opts) {
-		// Debug logging
-		console.warn("Darwin Exec: " + cmdString);
-
-		opts = opts || {}
-		if (opts.runInTerminal === true) {
-			// Delegate to user's preferred terminal; keep it simple and portable
-			const quoted = JSON.stringify(String(cmdString))
-			const tryTerm = [
-				"konsole -e bash -lc '" + quoted + "'",
-				"xterm -e bash -lc '" + quoted + "'",
-				"kitty bash -lc '" + quoted + "'"
-			]
-			for (let i = 0; i < tryTerm.length; ++i) {
-				const s = tryTerm[i]
-				if (__execViaPlasmaCore(s)) return
-				execDS.connectSource(s)
-				return
-			}
-			return
-	     }
-		// Use bash -lc to honor pipes/quotes/aliases
-		const source = "bash -lc " + JSON.stringify(String(cmdString))
-		// Prefer DataSource engine; if unavailable, fallback to PlasmaCore.Process
-		try {
-			execDS.connectSource(source)
-		} catch (e) {
-			if (!__execViaPlasmaCore(cmdString)) {
-				console.warn("No available exec backend")
-			}
-		}
-	}
+        function exec(cmd) {
+            executable.connectSource(cmd)
+        }
+    }
 }
