@@ -76,12 +76,17 @@ AbstractButton {
         }
         customCommands = commands
     }
-    onCustomCommandsChanged: {
-        customMenuEntries.clear()
-        for (const command of customCommands) {
-            customMenuEntries.append(command);
-        }
-    }
+
+	onCustomCommandsChanged: {
+		// remove one-by-one so Instantiator.onObjectRemoved fires,
+		// allowing customCommandsSubMenu.removeItem()/menu.removeItem() to run
+		for (let i = customMenuEntries.count - 1; i >= 0; --i) {
+			customMenuEntries.remove(i)
+		}
+		for (const command of customCommands) {
+			customMenuEntries.append(command)
+		}
+	}
 
     onClicked: {
         menu.isOpened ? menu.close() : menu.open(root)
@@ -141,14 +146,9 @@ AbstractButton {
         }
 
         QtLabs.MenuSeparator {}
-        ListModel {
-            id: customMenuEntries
-            Component.onCompleted: {
-                for (const command of customCommands) {
-                    customMenuEntries.append(command);
-                }
-            }
-        }
+
+		ListModel { id: customMenuEntries }
+
         QtLabs.Menu {
             id: customCommandsSubMenu
             enabled: menuButton.customCommandsInSeparateMenu && customMenuEntries.length > 0
