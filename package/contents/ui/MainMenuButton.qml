@@ -164,9 +164,9 @@ AbstractButton {
                     }
                 }
 
-                onObjectAdded: (index, object) => customCommandsSubMenu.insertItem(
-                    customCommandsSubMenu.customCommandsEntryStartIndex,
-                    object
+				onObjectAdded: (index, object) => customCommandsSubMenu.insertItem(
+					menu.customCommandsEntryStartIndex + index,
+					object
                 )
                 onObjectRemoved: (index, object) => customCommandsSubMenu.removeItem(object)
             }
@@ -181,7 +181,7 @@ AbstractButton {
                 }
             }
 
-            onObjectAdded: (index, object) => menu.insertItem(menu.customCommandsEntryStartIndex, object)
+			onObjectAdded: (index, object) => menu.insertItem(menu.customCommandsEntryStartIndex + index, object)
             onObjectRemoved: (index, object) => menu.removeItem(object)
         }
 
@@ -197,6 +197,7 @@ AbstractButton {
 
         QtLabs.MenuItem {
             id: appStoreMenuItem
+            visible: menuButton.appStoreCommand !== ""
             text: i18n("App Store...")
             onTriggered: {
                 doCommand(menuButton.appStoreCommand)

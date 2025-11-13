@@ -23,6 +23,7 @@ KCM.SimpleKCM {
 
     property bool cfg_shortcutOpensPlasmoid: Plasmoid.configuration.shortcutOpensPlasmoid
     property bool cfg_aboutThisPCUseCommand: Plasmoid.configuration.aboutThisPCUseCommand
+	property bool cfg_showAppStoreButton: Plasmoid.configuration.showAppStoreButton ?? true
 
     property alias cfg_aboutThisPCCommand: aboutThisPCCommand.text
     property alias cfg_appStoreCommand: appStoreCommand.text
